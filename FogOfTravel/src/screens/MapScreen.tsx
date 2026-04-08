@@ -3,6 +3,7 @@ import { StyleSheet, View, Text } from 'react-native';
 import Mapbox from '@rnmapbox/maps';
 import { useFocusEffect } from '@react-navigation/native';
 import FogLayer from '../components/FogLayer';
+import FlightArcs from '../components/FlightArcs';
 import { getClusteredCoords, getLocationPointCount } from '../services/database';
 
 const MAPBOX_TOKEN = process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN ?? '';
@@ -53,6 +54,7 @@ export default function MapScreen() {
           }}
         />
         <FogLayer visitedLocations={locations} />
+        <FlightArcs />
       </Mapbox.MapView>
     </View>
   );

@@ -57,9 +57,19 @@ function initSchema(db: DB) {
       airline TEXT,
       flight_number TEXT,
       distance_km REAL,
-      notes TEXT
+      notes TEXT,
+      trip_type TEXT DEFAULT 'flight',
+      confidence REAL DEFAULT 1.0
     );
   `);
+
+  // Migration: add trip_type and confidence columns if missing
+  try {
+    db.executeSync('SELECT trip_type FROM flights LIMIT 1');
+  } catch {
+    db.executeSync("ALTER TABLE flights ADD COLUMN trip_type TEXT DEFAULT 'flight'");
+    db.executeSync('ALTER TABLE flights ADD COLUMN confidence REAL DEFAULT 1.0');
+  }
 
   db.executeSync(`
     CREATE TABLE IF NOT EXISTS visited_regions (

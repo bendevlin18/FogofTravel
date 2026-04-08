@@ -15,6 +15,7 @@
     "@rnmapbox/maps": "^10.3.0",
     "@turf/buffer": "^7.3.4",
     "@turf/difference": "^7.3.4",
+    "@turf/great-circle": "^7.3.4",
     "@turf/helpers": "^7.3.4",
     "@turf/union": "^7.3.4",
     "expo": "~54.0.33",
