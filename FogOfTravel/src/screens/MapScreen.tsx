@@ -1,6 +1,7 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { StyleSheet, View, Text } from 'react-native';
 import Mapbox from '@rnmapbox/maps';
+import FogLayer from '../components/FogLayer';
 
 const MAPBOX_TOKEN = process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN ?? '';
 
@@ -33,7 +34,7 @@ export default function MapScreen() {
             zoomLevel: 1.5,
           }}
         />
-        <Mapbox.UserLocation visible />
+        <FogLayer />
       </Mapbox.MapView>
     </View>
   );
