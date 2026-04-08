@@ -4,6 +4,7 @@ import { Text, StyleSheet } from 'react-native';
 import MapScreen from '../screens/MapScreen';
 import FlightsScreen from '../screens/FlightsScreen';
 import StatsScreen from '../screens/StatsScreen';
+import ImportScreen from '../screens/ImportScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 
 const Tab = createBottomTabNavigator();
@@ -13,6 +14,7 @@ function TabIcon({ label, focused }: { label: string; focused: boolean }) {
     Map: '🗺',
     Flights: '✈',
     Stats: '📊',
+    Import: '📥',
     Settings: '⚙',
   };
   return (
@@ -40,6 +42,7 @@ export default function TabNavigator() {
       <Tab.Screen name="Map" component={MapScreen} />
       <Tab.Screen name="Flights" component={FlightsScreen} />
       <Tab.Screen name="Stats" component={StatsScreen} />
+      <Tab.Screen name="Import" component={ImportScreen} />
       <Tab.Screen name="Settings" component={SettingsScreen} />
     </Tab.Navigator>
   );

@@ -1,13 +1,31 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { StyleSheet, View, Text } from 'react-native';
 import Mapbox from '@rnmapbox/maps';
+import { useFocusEffect } from '@react-navigation/native';
 import FogLayer from '../components/FogLayer';
+import { getClusteredCoords, getLocationPointCount } from '../services/database';
 
 const MAPBOX_TOKEN = process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN ?? '';
 
 Mapbox.setAccessToken(MAPBOX_TOKEN);
 
 export default function MapScreen() {
+  const [locations, setLocations] = useState<[number, number][] | undefined>(undefined);
+
+  // Reload clustered locations from DB each time the Map tab is focused
+  useFocusEffect(
+    useCallback(() => {
+      const count = getLocationPointCount();
+      if (count > 0) {
+        // Get pre-clustered coords from SQL (~300 rows instead of 280K)
+        const coords = getClusteredCoords(0.5);
+        setLocations(coords);
+      } else {
+        setLocations(undefined); // Use test data in FogLayer
+      }
+    }, [])
+  );
+
   if (!MAPBOX_TOKEN) {
     return (
       <View style={styles.placeholder}>
@@ -34,7 +52,7 @@ export default function MapScreen() {
             zoomLevel: 1.5,
           }}
         />
-        <FogLayer />
+        <FogLayer visitedLocations={locations} />
       </Mapbox.MapView>
     </View>
   );

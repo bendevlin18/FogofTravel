@@ -543,14 +543,36 @@ Use `@turf/great-circle` to generate a GeoJSON `LineString` with ~100 interpolat
 
 ---
 
+## Fog Render Optimization — TODO
+
+Current state: fog computation works end-to-end (import → SQL clustering → Turf.js buffer/union/difference → Mapbox fill layer). With 280K imported points, SQL `GROUP BY` reduces to ~300 clusters, and fog computes in ~2s on desktop. On-device it's slower and blocks the JS thread during computation.
+
+### Known bottlenecks
+1. **Pairwise union is the slowest step** (~1.7s of the ~2s total on desktop). Each merge increases vertex count, making later merges progressively slower.
+2. **Fog computation runs on the main JS thread.** Even with `setTimeout` deferral, the UI freezes during the ~2-5s computation on-device.
+3. **Fog polygon can be very large** (~400KB GeoJSON). Passing this to Mapbox via the bridge has serialization cost, and rendering 100K+ vertices causes frame drops during pan/zoom.
+4. **No caching.** Fog is recomputed from scratch every time the Map tab is focused, even if no new data was imported.
+
+### Optimization ideas to explore
+- **Cache fog GeoJSON in SQLite** (`fog_cache` table already exists in schema). Only recompute when point count changes.
+- **Move fog computation off the main thread** — use a JS worker, `react-native-worklets-core`, or compute natively via a JSI module wrapping JTS.
+- **Tile-based fog instead of global polygon.** Render fog per map tile using a custom Mapbox source. Avoids the massive polygon entirely. This would be a significant architectural change but solves the vertex-count scaling problem permanently.
+- **Simplify the fog polygon** after union using Douglas-Peucker or `@turf/simplify` to reduce vertex count before passing to Mapbox.
+- **LOD switching on zoom.** Use coarse clusters (0.5° grid, 30km radius) at low zoom, fine clusters (0.02° grid, 3km radius) at high zoom. Precompute and cache each tier. Infrastructure for this exists in `clustering.ts` but isn't wired up yet.
+- **Incremental recompute.** When new points are imported, only compute fog for the new clusters and merge with the cached polygon, rather than recomputing everything.
+- **Use Mapbox expressions or image-based masking** instead of a GeoJSON fill layer. A raster mask approach could bypass the vertex-count problem entirely.
+
+---
+
 ## Getting Started Checklist
 
-- [ ] Create Mapbox account, get API access token
-- [ ] Set up React Native project with New Architecture enabled
-- [ ] Integrate `@rnmapbox/maps` and render a base map
-- [ ] Implement basic fog overlay with a hardcoded test polygon
-- [ ] Build the Takeout JSON streaming parser
-- [ ] Wire parser → clustering → fog polygon → map layer
+- [x] Create Mapbox account, get API access token
+- [x] Set up React Native project with New Architecture enabled
+- [x] Integrate `@rnmapbox/maps` and render a base map
+- [x] Implement basic fog overlay with a hardcoded test polygon
+- [x] Build the Takeout JSON parser (+ desktop preprocessor for large files)
+- [x] Wire parser → clustering → fog polygon → map layer
+- [ ] Optimize fog render performance (see section above)
 - [ ] Build flight entry UI + great-circle rendering
 - [ ] Add stats dashboard
 - [ ] Design onboarding flow

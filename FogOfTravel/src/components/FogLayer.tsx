@@ -1,9 +1,11 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
+import { ActivityIndicator, View, StyleSheet } from 'react-native';
 import Mapbox from '@rnmapbox/maps';
 import { computeFogPolygon } from '../services/fogComputer';
+import type { Feature, Polygon, MultiPolygon } from 'geojson';
 
 /**
- * Hardcoded test locations for the fog prototype.
+ * Hardcoded test locations (used when no imported data exists).
  * [longitude, latitude]
  */
 const TEST_VISITED_LOCATIONS: [number, number][] = [
@@ -19,20 +21,31 @@ const TEST_VISITED_LOCATIONS: [number, number][] = [
 
 interface FogLayerProps {
   visitedLocations?: [number, number][];
-  radiusKm?: number;
   fogOpacity?: number;
   fogColor?: string;
 }
 
 export default function FogLayer({
-  visitedLocations = TEST_VISITED_LOCATIONS,
-  radiusKm = 50,
+  visitedLocations,
   fogOpacity = 0.7,
   fogColor = '#1a1a2e',
 }: FogLayerProps) {
-  const fogGeoJSON = useMemo(() => {
-    return computeFogPolygon(visitedLocations, radiusKm);
-  }, [visitedLocations, radiusKm]);
+  const locations = visitedLocations ?? TEST_VISITED_LOCATIONS;
+  const [fogGeoJSON, setFogGeoJSON] = useState<Feature<Polygon | MultiPolygon> | null>(null);
+
+  useEffect(() => {
+    // Defer computation so the UI renders first
+    const timer = setTimeout(() => {
+      // Data is already clustered from SQL, pass lod=-1 to skip JS clustering
+      const result = computeFogPolygon(locations, -1);
+      setFogGeoJSON(result);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [locations]);
+
+  if (!fogGeoJSON) {
+    return null;
+  }
 
   return (
     <Mapbox.ShapeSource id="fog-source" shape={fogGeoJSON}>
