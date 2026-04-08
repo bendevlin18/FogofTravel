@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-expo-app@latest FogOfTravel --template blank-typescript)"
+    ]
+  }
+}
