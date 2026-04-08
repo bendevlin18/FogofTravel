@@ -22,7 +22,7 @@ export default function MapScreen() {
     <View style={styles.container}>
       <Mapbox.MapView
         style={styles.map}
-        styleURL={Mapbox.StyleURL.Outdoors}
+        styleURL="mapbox://styles/mapbox/outdoors-v12"
         logoEnabled={false}
         attributionEnabled={false}
         scaleBarEnabled={false}
