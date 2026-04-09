@@ -1,7 +1,8 @@
-import React, { useMemo, useState, useEffect } from 'react';
-import { ActivityIndicator, View, StyleSheet } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
 import Mapbox from '@rnmapbox/maps';
+import { InteractionManager } from 'react-native';
 import { computeFogPolygon } from '../services/fogComputer';
+import { getFogCache, setFogCache } from '../services/database';
 import type { Feature, Polygon, MultiPolygon } from 'geojson';
 
 /**
@@ -25,6 +26,8 @@ interface FogLayerProps {
   fogColor?: string;
 }
 
+const FOG_LOD = -1; // Pre-clustered data LOD key
+
 export default function FogLayer({
   visitedLocations,
   fogOpacity = 0.7,
@@ -34,13 +37,33 @@ export default function FogLayer({
   const [fogGeoJSON, setFogGeoJSON] = useState<Feature<Polygon | MultiPolygon> | null>(null);
 
   useEffect(() => {
-    // Defer computation so the UI renders first
-    const timer = setTimeout(() => {
-      // Data is already clustered from SQL, pass lod=-1 to skip JS clustering
-      const result = computeFogPolygon(locations, -1);
+    // Try loading from SQLite cache first
+    const cached = getFogCache(FOG_LOD);
+    if (cached) {
+      try {
+        setFogGeoJSON(JSON.parse(cached));
+        return;
+      } catch {
+        // Corrupted cache, fall through to recompute
+      }
+    }
+
+    // Compute after animations/transitions complete so tab switch isn't blocked
+    const handle = InteractionManager.runAfterInteractions(() => {
+      console.log('[fog] Cache miss — computing fog polygon...');
+      const result = computeFogPolygon(locations, FOG_LOD);
       setFogGeoJSON(result);
-    }, 100);
-    return () => clearTimeout(timer);
+
+      // Persist to cache for next tab switch / app launch
+      try {
+        setFogCache(FOG_LOD, JSON.stringify(result));
+        console.log('[fog] Cached fog polygon to SQLite');
+      } catch {
+        // Cache write failed — non-fatal
+      }
+    });
+
+    return () => handle.cancel();
   }, [locations]);
 
   if (!fogGeoJSON) {

@@ -1,18 +1,31 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import Mapbox from '@rnmapbox/maps';
 import { useFocusEffect } from '@react-navigation/native';
 import { generateFlightArcs, getAllFlights } from '../services/flightService';
+import { getDataVersion } from '../services/database';
+import { getAirport } from '../utils/airports';
 import type { FeatureCollection, LineString, Point } from 'geojson';
 import * as turf from '@turf/helpers';
 
-export default function FlightArcs() {
+interface FlightArcsProps {
+  showFlights?: boolean;
+  showRoadTrips?: boolean;
+}
+
+export default function FlightArcs({
+  showFlights = true,
+  showRoadTrips = true,
+}: FlightArcsProps) {
   const [flightArcs, setFlightArcs] = useState<FeatureCollection<LineString> | null>(null);
   const [roadTripArcs, setRoadTripArcs] = useState<FeatureCollection<LineString> | null>(null);
   const [airports, setAirports] = useState<FeatureCollection<Point> | null>(null);
+  const loadedVersionRef = useRef(-1);
 
   useFocusEffect(
     useCallback(() => {
-      // Generate arcs split by type
+      const currentVersion = getDataVersion();
+      if (loadedVersionRef.current === currentVersion) return;
+
       const allArcs = generateFlightArcs('all');
 
       const flightFeatures = allArcs.features.filter(
@@ -25,26 +38,40 @@ export default function FlightArcs() {
       setFlightArcs(turf.featureCollection(flightFeatures) as FeatureCollection<LineString>);
       setRoadTripArcs(turf.featureCollection(roadFeatures) as FeatureCollection<LineString>);
 
-      // Airport markers from all flights
+      // Airport markers from all flights — include city name for labels
       const flights = getAllFlights();
       const seen = new Set<string>();
       const points: any[] = [];
       for (const f of flights) {
         if (!seen.has(f.origin_iata)) {
           seen.add(f.origin_iata);
-          points.push(turf.point([f.origin_lng, f.origin_lat], { iata: f.origin_iata }));
+          const airport = getAirport(f.origin_iata);
+          points.push(
+            turf.point([f.origin_lng, f.origin_lat], {
+              iata: f.origin_iata,
+              city: airport?.city ?? '',
+            })
+          );
         }
         if (!seen.has(f.dest_iata)) {
           seen.add(f.dest_iata);
-          points.push(turf.point([f.dest_lng, f.dest_lat], { iata: f.dest_iata }));
+          const airport = getAirport(f.dest_iata);
+          points.push(
+            turf.point([f.dest_lng, f.dest_lat], {
+              iata: f.dest_iata,
+              city: airport?.city ?? '',
+            })
+          );
         }
       }
       setAirports(turf.featureCollection(points) as FeatureCollection<Point>);
+      loadedVersionRef.current = currentVersion;
     }, [])
   );
 
-  const hasFlights = flightArcs && flightArcs.features.length > 0;
-  const hasRoadTrips = roadTripArcs && roadTripArcs.features.length > 0;
+  const hasFlights = showFlights && flightArcs && flightArcs.features.length > 0;
+  const hasRoadTrips = showRoadTrips && roadTripArcs && roadTripArcs.features.length > 0;
+  const hasAirports = (showFlights || showRoadTrips) && airports && airports.features.length > 0;
 
   if (!hasFlights && !hasRoadTrips) return null;
 
@@ -79,8 +106,8 @@ export default function FlightArcs() {
         </Mapbox.ShapeSource>
       )}
 
-      {/* Airport markers */}
-      {airports && airports.features.length > 0 && (
+      {/* Airport markers + labels */}
+      {hasAirports && (
         <Mapbox.ShapeSource id="airport-markers" shape={airports}>
           <Mapbox.CircleLayer
             id="airport-circles"
@@ -94,13 +121,18 @@ export default function FlightArcs() {
           <Mapbox.SymbolLayer
             id="airport-labels"
             style={{
-              textField: ['get', 'iata'],
+              textField: ['format',
+                ['get', 'iata'], { 'font-scale': 1.0 },
+                '\n', {},
+                ['get', 'city'], { 'font-scale': 0.75 },
+              ],
               textSize: 11,
               textColor: '#ffffff',
               textHaloColor: '#000000',
               textHaloWidth: 1,
-              textOffset: [0, 1.2],
+              textOffset: [0, 1.4],
               textAnchor: 'top',
+              textAllowOverlap: false,
             }}
           />
         </Mapbox.ShapeSource>

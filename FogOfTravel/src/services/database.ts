@@ -2,6 +2,20 @@ import { open, type DB } from '@op-engineering/op-sqlite';
 
 let db: DB | null = null;
 
+/**
+ * Monotonically increasing version counter. Bumped whenever location or flight
+ * data changes, so UI components know to reload on next focus.
+ */
+let dataVersion = 0;
+
+export function getDataVersion(): number {
+  return dataVersion;
+}
+
+export function bumpDataVersion(): void {
+  dataVersion++;
+}
+
 export function getDB(): DB {
   if (!db) {
     db = open({ name: 'fogoftravel.db' });
@@ -146,4 +160,41 @@ export function getLocationPointCount(): number {
 export function clearLocationPoints(): void {
   const db = getDB();
   db.executeSync('DELETE FROM location_points');
+  invalidateFogCache();
+}
+
+// --- Fog cache ---
+
+/**
+ * Get cached fog GeoJSON for a given LOD tier.
+ * Returns null if no cache exists or it's been invalidated.
+ */
+export function getFogCache(lod: number): string | null {
+  const db = getDB();
+  const result = db.executeSync(
+    'SELECT geojson FROM fog_cache WHERE lod = ?',
+    [lod]
+  );
+  return (result.rows[0] as any)?.geojson ?? null;
+}
+
+/**
+ * Store computed fog GeoJSON in the cache.
+ */
+export function setFogCache(lod: number, geojson: string): void {
+  const db = getDB();
+  db.executeSync(
+    `INSERT OR REPLACE INTO fog_cache (lod, geojson, updated_at)
+     VALUES (?, ?, ?)`,
+    [lod, geojson, Date.now()]
+  );
+}
+
+/**
+ * Invalidate all fog cache entries. Call after imports or data changes.
+ */
+export function invalidateFogCache(): void {
+  const db = getDB();
+  db.executeSync('DELETE FROM fog_cache');
+  bumpDataVersion();
 }

@@ -564,6 +564,29 @@ Current state: fog computation works end-to-end (import → SQL clustering → T
 
 ---
 
+## Upcoming Features
+
+### UI/UX Improvements
+1. ~~**Full airport names under IATA labels.**~~ Done — city names shown below IATA codes.
+2. **Move Import into Settings.** The Import tab is only used once during initial setup — collapse it into a single option within the Settings tab and reclaim the tab bar slot.
+3. ~~**Map layer toggles.**~~ Done — gear icon on map with flight/road trip checkboxes.
+4. ~~**Fog opacity slider.**~~ Done — slider in map controls panel.
+5. **Flight arc and road trip color options.** Add color pickers in Settings to let the user customize the color of flight arcs (default blue) and road trip lines (default green) independently.
+
+### Social / Multi-User
+6. **Location history sharing.** Allow users to share their revealed fog map with other users (different accounts). Needs design work around: what data format to share (fog polygon? cluster list?), privacy controls (share everything vs. share a snapshot), and whether this requires a backend or can be peer-to-peer (e.g., export/import a shareable file).
+
+### New Location Unlocked
+7. **City unlock detection.** When the app detects the user is in a city they haven't visited before, show a "New City Unlocked!" notification/modal with the city name and country.
+8. **City fun facts.** Bundle a curated set of fun facts for major cities (stored locally as a JSON asset). Display 1-2 facts in the unlock notification. Facts could include: population, founded year, famous landmarks, local cuisine, fun trivia, etc. Start with top ~500 cities and expand over time.
+
+### Priority Notes
+- Items 1-5 are polish/settings work — relatively small effort.
+- Item 6 (sharing) needs architectural design before implementation — may require a lightweight backend or a clever peer-to-peer approach.
+- Items 7-8 (city unlock + fun facts) are a new feature vertical — requires background location monitoring, a city boundary dataset (or reverse geocoding), and the curated facts database.
+
+---
+
 ## Getting Started Checklist
 
 - [x] Create Mapbox account, get API access token

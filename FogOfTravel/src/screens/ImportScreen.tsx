@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { importGoogleTakeout, type ImportProgress } from '../services/locationImporter';
-import { getLocationPointCount } from '../services/database';
+import { getLocationPointCount, invalidateFogCache } from '../services/database';
 
 export default function ImportScreen() {
   const [progress, setProgress] = useState<ImportProgress | null>(null);
@@ -27,6 +27,7 @@ export default function ImportScreen() {
       });
 
       setProgress(finalProgress);
+      invalidateFogCache(); // Force fog recomputation on next Map tab visit
       setPointCount(getLocationPointCount());
     } catch (e: any) {
       setProgress({

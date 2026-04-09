@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@op-engineering/op-sqlite": "^15.2.11",
+    "@react-native-community/slider": "^5.2.0",
     "@react-navigation/bottom-tabs": "^7.15.9",
     "@react-navigation/native": "^7.2.2",
     "@rnmapbox/maps": "^10.3.0",

@@ -1,10 +1,11 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { StyleSheet, View, Text } from 'react-native';
 import Mapbox from '@rnmapbox/maps';
 import { useFocusEffect } from '@react-navigation/native';
 import FogLayer from '../components/FogLayer';
 import FlightArcs from '../components/FlightArcs';
-import { getClusteredCoords, getLocationPointCount } from '../services/database';
+import MapControls from '../components/MapControls';
+import { getClusteredCoords, getLocationPointCount, getDataVersion } from '../services/database';
 
 const MAPBOX_TOKEN = process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN ?? '';
 
@@ -12,18 +13,26 @@ Mapbox.setAccessToken(MAPBOX_TOKEN);
 
 export default function MapScreen() {
   const [locations, setLocations] = useState<[number, number][] | undefined>(undefined);
+  const loadedVersionRef = useRef(-1);
 
-  // Reload clustered locations from DB each time the Map tab is focused
+  // Map controls state
+  const [fogOpacity, setFogOpacity] = useState(0.7);
+  const [showFlights, setShowFlights] = useState(true);
+  const [showRoadTrips, setShowRoadTrips] = useState(true);
+
   useFocusEffect(
     useCallback(() => {
+      const currentVersion = getDataVersion();
+      if (loadedVersionRef.current === currentVersion) return;
+
       const count = getLocationPointCount();
       if (count > 0) {
-        // Get pre-clustered coords from SQL (~300 rows instead of 280K)
         const coords = getClusteredCoords(0.5);
         setLocations(coords);
       } else {
-        setLocations(undefined); // Use test data in FogLayer
+        setLocations(undefined);
       }
+      loadedVersionRef.current = currentVersion;
     }, [])
   );
 
@@ -53,9 +62,18 @@ export default function MapScreen() {
             zoomLevel: 1.5,
           }}
         />
-        <FogLayer visitedLocations={locations} />
-        <FlightArcs />
+        <FogLayer visitedLocations={locations} fogOpacity={fogOpacity} />
+        <FlightArcs showFlights={showFlights} showRoadTrips={showRoadTrips} />
       </Mapbox.MapView>
+
+      <MapControls
+        fogOpacity={fogOpacity}
+        onFogOpacityChange={setFogOpacity}
+        showFlights={showFlights}
+        onToggleFlights={() => setShowFlights((v) => !v)}
+        showRoadTrips={showRoadTrips}
+        onToggleRoadTrips={() => setShowRoadTrips((v) => !v)}
+      />
     </View>
   );
 }

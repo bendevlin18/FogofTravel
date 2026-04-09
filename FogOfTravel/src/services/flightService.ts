@@ -1,4 +1,4 @@
-import { getDB } from './database';
+import { getDB, bumpDataVersion } from './database';
 import { getAirport } from '../utils/airports';
 import greatCircle from '@turf/great-circle';
 import * as turf from '@turf/helpers';
@@ -63,6 +63,8 @@ export function addFlight(params: {
       params.confidence ?? 1.0,
     ]
   );
+
+  bumpDataVersion();
 
   return {
     id: result.insertId ?? 0,
@@ -134,6 +136,7 @@ export function updateTripType(id: number, tripType: TripType): void {
     tripType,
     id,
   ]);
+  bumpDataVersion();
 }
 
 /**
@@ -142,6 +145,7 @@ export function updateTripType(id: number, tripType: TripType): void {
 export function deleteFlight(id: number): void {
   const db = getDB();
   db.executeSync('DELETE FROM flights WHERE id = ?', [id]);
+  bumpDataVersion();
 }
 
 /**
